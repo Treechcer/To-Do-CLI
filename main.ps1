@@ -1,4 +1,4 @@
-$version = "0.0.1"
+$version = "0.0.2"
 
 function startThis{
     
@@ -36,10 +36,7 @@ function startThis{
                 Write-Host "This JSON number file doen't exists"
             }
             else {
-                "TEST"
                 $JSON = Get-Content -Path (createPath $number) -Raw | ConvertFrom-Json
-
-                #$JSON.tasks += (createTask $false 100 "test" "test") #TEST THINGY MAGINGy
 
                 fileWrite $JSON
 
@@ -69,11 +66,24 @@ function writeOutTasks{
     )
 
     foreach($task in $JSON.tasks){
-        $task.name
-        $task.description
+        Write-Host ""
+        Write-Host "task number:" ([string]$task.id)
+        Write-Host "Name:" ([string]$task.name)
+        Write-Host "Description:" ([string]$task.description)
         "-------"
-        $task.isFinished
-        $task.percentage
+        if ($task.isFinished){
+            Write-Host "Status: finished"
+        }
+        else {
+            Write-Host "Status: not finished"
+        }
+        
+        $per = [int] ($task.percentage / 5)
+
+        $out = "#" * $per -join ""
+        $out += "-" * (20 - $per) -join ""
+        Write-Host "Percentage: $out"
+        Write-Host ""
     }
 }
 
@@ -82,14 +92,18 @@ function createTask {
         [boolean]$isFinished,
         [int16]$percentage,
         [string]$name,
-        [string]$description
+        [string]$description,
+        [PSCustomObject]$JSON
     )
+
+    $id = $JSON.tasks[$JSON.tasks.Length - 1].id + 1
 
     return [PSCustomObject]@{
         isFinished = $isFinished
         percentage = $percentage
         name = $name
         description = $description
+        id = $id
     }
 }
 
