@@ -211,6 +211,8 @@ function writeOutTasks{
         [PSCustomObject]$JSON
     )
 
+    $JSON.name
+
     foreach($task in $JSON.tasks){
         Write-Host "========== TASK $($task.id) ==========" -ForegroundColor Magenta
         Write-Host "Name: $($task.name)" -ForegroundColor White
