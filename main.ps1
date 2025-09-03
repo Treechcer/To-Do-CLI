@@ -1,4 +1,4 @@
-$global:version = "0.0.5"
+$global:version = "0.1.0"
 
 function startThis{
     while ($true){
@@ -39,7 +39,7 @@ function startThis{
                     else {
                         $JSON = Get-Content -Path (createPath $number) -Raw | ConvertFrom-Json
 
-                        $workDays = @((Get-Date -Format "yyyy-dd-MM"))
+                        $workDays = @((Get-Date -Format "dd-MM-yyyy"))
 
                         $JSON.tasks += (createTask $false 1250 "test" "test" $JSON $true 0 $workDays)
                         fileWrite $JSON
@@ -70,15 +70,80 @@ function startThis{
                 }
 
             }
+            4{
+                while ($true) {
+                    $choice = Read-Host "Do you want to delte JSON or TASKs? ['end' to end]"
+
+                    if ($choice.ToLower() -eq "json" -or $choice.ToLower() -eq "task"){
+                        $number = Read-Host "Number of JSON you want to load"
+                        try {
+                            if (-not (checkIfExists $number)){
+                                Write-Host "This JSON number file doen't exists"
+                            }
+                            else {
+                                if ($choice.ToLower() -eq "json"){
+                                    Remove-Item -Path ("TODO" + $number + ".json")
+                                    break
+                                }
+                                else{
+                                    $JSON = Get-Content -Path (createPath $number) -Raw | ConvertFrom-Json
+                                    deleteTask $JSON
+                                    break
+                                }
+                            }
+                        }   
+                        catch {
+                            Write-Host "You have to write only number"
+                        }
+                    }
+                    elseif ($choice.ToLower() -eq "end") {
+                        break
+                    }
+                    else{
+                        Write-Host "Incorrect output, I was looking for 'json' or 'task'"
+                    }
+                }
+            }
             5 {
                 return
             }
             Default {
                 Write-Host "incorrect input, starting again"
-                startThis
+                continue
             }
         }
     }
+}
+
+function deleteTask {
+    param(
+        [PSCustomObject]$JSON
+    )
+
+    if ($JSON.tasksNum -eq 0){
+        Write-Host "This JSON has 0 tasks"
+        return
+    }
+
+    writeOutTasks $JSON
+
+    while($true){
+        $number = Read-Host "Which task you want to delete ['end' for end]?"
+        if ($number.ToString() -eq "end"){
+            break
+        }
+        else {
+            if ($number -gt $JSON.tasksNum){
+                Write-Host "Too big number, you only have $($JSON.tasksNum)"
+            }
+            $JSON.tasks[$number - 1].deleted = $true
+            break
+        }
+    }
+
+    fileWrite $JSON
+
+    writeOutStart
 }
 
 function editingJSON {
@@ -98,7 +163,7 @@ function editingJSON {
             continue
         }
 
-        $change = Read-Host "What do you want to change? ['finished', 'percent', 'name', 'description', 'time', 'all']"
+        $change = Read-Host "What do you want to change? ['finished', 'percent', 'name', 'description', 'time', 'all', 'JSONname']"
         $change = $change.ToLower()
 
         $isFinished = $JSON.tasks[$number - 1].isFinished
@@ -157,7 +222,7 @@ function editingJSON {
             $description = Read-Host "what's the description of the task?"
 
             if ($description.ToLower() -eq "none") {
-                $name = $JSON.tasks[$number - 1].description
+                $description = $JSON.tasks[$number - 1].description
             }
             elseif ($description.ToLower() -eq "end") {
                 break
@@ -180,9 +245,12 @@ function editingJSON {
                 $time = 0
             }
         }
+        if ($change -eq "JSONname" -or $change -eq "all"){
+            changeName $JSON
+        }
 
         $workDays = @($JSON.tasks[$number - 1].workDays)
-        $currentDay = (Get-Date -Format "yyyy-dd-MM")
+        $currentDay = (Get-Date -Format "dd-MM-yyyy")
 
         if (-not ($workDays -contains $currentDay)){
             $workDays += $currentDay
@@ -211,49 +279,64 @@ function writeOutTasks{
         [PSCustomObject]$JSON
     )
 
-    $JSON.name
+    Write-Host "========== $($JSON.name) ==========" -ForegroundColor Cyan
+    Write-Host ""
 
     foreach($task in $JSON.tasks){
-        Write-Host "========== TASK $($task.id) ==========" -ForegroundColor Magenta
-        Write-Host "Name: $($task.name)" -ForegroundColor White
-        Write-Host "Description: $($task.description)" -ForegroundColor White
-        Write-Host "Task ID: $($task.id)" -ForegroundColor DarkGray
+        if (-not $task.deleted){
+            Write-Host "========== TASK $($task.id) ==========" -ForegroundColor Magenta
+            Write-Host "Name: $($task.name)" -ForegroundColor White
+            Write-Host "Description: $($task.description)" -ForegroundColor White
+            Write-Host "Task ID: $($task.id)" -ForegroundColor DarkGray
 
-        if ($task.isFinished){
-            $status = "Completed"
-            $scol = "Green"
+            if ($task.isFinished){
+                $status = "Completed"
+                $scol = "Green"
+            }
+            else {
+                $status = "In Progress"
+                $scol = "Yellow"
+            }
+            Write-Host "Status: $status" -ForegroundColor $scol
+
+            $per = [int] ($task.percentage / 5)
+            $out = "#" * $per -join ""
+            $out += "-" * (20 - $per) -join ""
+
+            if ($task.percentage -lt 70){
+                $color = "Red"
+            }
+            else {
+                $color = "Green"
+            }
+
+            Write-Host "Progress: [$out] $($task.percentage)%" -ForegroundColor $color
+            Write-Host "Time: $($task.time)" -ForegroundColor Gray
+
+            $str = "========== TASK $($task.id) ==========" 
+            $end = ""
+
+            for ($i = 1; $i -lt $str.Length; $i++) {
+                $end += "="
+            }
+
+            Write-Host "$end" -ForegroundColor Magenta
+            Write-Host ""
         }
-        else {
-            $status = "In Progress"
-            $scol = "Yellow"
-        }
-        Write-Host "Status: $status" -ForegroundColor $scol
-
-        $per = [int] ($task.percentage / 5)
-        $out = "#" * $per -join ""
-        $out += "-" * (20 - $per) -join ""
-
-        if ($task.percentage -lt 70){
-            $color = "Red"
-        }
-        else {
-            $color = "Green"
-        }
-
-        Write-Host "Progress: [$out] $($task.percentage)%" -ForegroundColor $color
-        Write-Host "Time: $($task.time)" -ForegroundColor Gray
-
-        $str = "========== TASK $($task.id) ==========" 
-        $end = ""
-
-        for ($i = 1; $i -lt $str.Length; $i++) {
-            $end += "="
-        }
-
-        Write-Host "$end" -ForegroundColor Magenta
-        Write-Host ""
     }
 
+}
+
+function changeName {
+    param (
+        [PSCustomObject]$JSON
+    )
+    
+    $name = Read-Host "What do you want to change the name of this JSON TO-DO list?"
+
+    $JSON.name = $name
+
+    fileWrite $JSON
 }
 
 function createTask {
@@ -265,7 +348,8 @@ function createTask {
         [PSCustomObject]$JSON,
         [bool]$changeID,
         [double]$time,
-        [array]$date
+        [array]$date,
+        [boolean]$deleted
     )
 
     if ($changeID){
@@ -290,6 +374,7 @@ function createTask {
         time = $time
         id = $id
         workDays = $date
+        deleted = $deleted
     }
 }
 
@@ -302,6 +387,7 @@ function writeOutStart {
     Write-Host "[1] Create a new To-Do list" -ForegroundColor Green
     Write-Host "[2] Load and modify an existing To-Do JSON" -ForegroundColor Yellow
     Write-Host "[3] View an existing To-Do JSON" -ForegroundColor Cyan
+    Write-Host "[4] Delete Tasks and JSONs" -ForegroundColor Magenta
     Write-Host "[5] Exit the program" -ForegroundColor Red
     Write-Host ""
 
