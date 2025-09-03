@@ -1,81 +1,82 @@
-$global:version = "0.0.4"
+$global:version = "0.0.5"
 
 function startThis{
-    
-    $mode = Read-Host "mode" 
+    while ($true){
+        $mode = Read-Host "mode" 
 
-    switch ($mode) {
-        1 {  
-            Write-Host "Creating a new To-Do list..."
+        switch ($mode) {
+            1 {  
+                Write-Host "Creating a new To-Do list..."
 
-            $tempList = [PSCustomObject]@{
-                #Name = Value
-                version = $version
-                name = "default"
-                id = 1 #temp value, we will check if the ID is correct
-                tasksNum = 0 #number of tasks, when it's created theres no TASKS
-                tasks = @(
-                    
-                )
-                #... more might be added
-            }
-
-            $tempList.id = createTODO $tempList.id
-
-            $path = createPath ([int32]$tempList.id)
-
-            ConvertTo-Json $tempList -Depth 3 | Out-File $path
-
-            Write-Host "Created new JSON file for you TO-DO list"
-
-            writeOutStart
-        }
-        2 {
-            $number = Read-Host "Number of JSON you want to load"
-            try {
-                 if (-not (checkIfExists $number)){
-                    Write-Host "This JSON number file doen't exists"
+                $tempList = [PSCustomObject]@{
+                    #Name = Value
+                    version = $version
+                    name = "default"
+                    id = 1 #temp value, we will check if the ID is correct
+                    tasksNum = 0 #number of tasks, when it's created theres no TASKS
+                    tasks = @(
+                        
+                    )
+                    #... more might be added
                 }
-                else {
-                    $JSON = Get-Content -Path (createPath $number) -Raw | ConvertFrom-Json
 
-                    $workDays = @((Get-Date -Format "yyyy-dd-MM"))
+                $tempList.id = createTODO $tempList.id
 
-                    $JSON.tasks += (createTask $false 1250 "test" "test" $JSON $true 0 $workDays)
-                    fileWrite $JSON
+                $path = createPath ([int32]$tempList.id)
 
-                    writeOutTasks $JSON
+                ConvertTo-Json $tempList -Depth 3 | Out-File $path
 
-                    editingJSON $JSON
+                Write-Host "Created new JSON file for you TO-DO list"
+
+                writeOutStart
+            }
+            2 {
+                $number = Read-Host "Number of JSON you want to load"
+                try {
+                    if (-not (checkIfExists $number)){
+                        Write-Host "This JSON number file doen't exists"
+                    }
+                    else {
+                        $JSON = Get-Content -Path (createPath $number) -Raw | ConvertFrom-Json
+
+                        $workDays = @((Get-Date -Format "yyyy-dd-MM"))
+
+                        $JSON.tasks += (createTask $false 1250 "test" "test" $JSON $true 0 $workDays)
+                        fileWrite $JSON
+
+                        writeOutTasks $JSON
+
+                        editingJSON $JSON
+                    }   
+                }
+                catch {
+                    Write-Host "You have to write only number"
+                }
+            }
+            3{
+                $number = Read-Host "Number of JSON you want to load"
+                try {
+                    if (-not (checkIfExists $number)){
+                        Write-Host "This JSON number file doen't exists"
+                    }
+                    else {
+                        $JSON = Get-Content -Path (createPath $number) -Raw | ConvertFrom-Json
+
+                        writeOutTasks $JSON
+                    }
                 }   
-            }
-            catch {
-                Write-Host "You have to write only number"
-            }
-        }
-        3{
-            $number = Read-Host "Number of JSON you want to load"
-            try {
-                if (-not (checkIfExists $number)){
-                    Write-Host "This JSON number file doen't exists"
+                catch {
+                    Write-Host "You have to write only number"
                 }
-                else {
-                    $JSON = Get-Content -Path (createPath $number) -Raw | ConvertFrom-Json
 
-                    writeOutTasks $JSON
-                }
-            }   
-            catch {
-                Write-Host "You have to write only number"
             }
-
-        }
-        5 {
-
-        }
-        Default {
-            Write-Host "incorrect input, starting again"
-            startThis
+            5 {
+                return
+            }
+            Default {
+                Write-Host "incorrect input, starting again"
+                startThis
+            }
         }
     }
 }
