@@ -1,4 +1,4 @@
-$global:version = "0.1.0"
+$global:version = "0.1.1"
 
 function startThis{
     while ($true){
@@ -10,7 +10,7 @@ function startThis{
 
                 $tempList = [PSCustomObject]@{
                     #Name = Value
-                    version = $version
+                    version = $global:version
                     name = "default"
                     id = 1 #temp value, we will check if the ID is correct
                     tasksNum = 0 #number of tasks, when it's created theres no TASKS
